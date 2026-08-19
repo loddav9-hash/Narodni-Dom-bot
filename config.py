@@ -7,17 +7,23 @@ load_dotenv()
 # Токены
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-ADMIN_ID = os.getenv("ADMIN_ID")  # Твой Telegram ID
+ADMIN_ID = os.getenv("ADMIN_ID")
+
+# Если ключи не найдены — показываем ошибку
+if not BOT_TOKEN:
+    raise ValueError("BOT_TOKEN не найден в переменных окружения!")
+if not GEMINI_API_KEY:
+    raise ValueError("GEMINI_API_KEY не найден в переменных окружения!")
 
 # Название хостела
 HOSTEL_NAME = "Народный Дом / Narodni Dom"
 HOSTEL_ADDRESS = "Земун, Белград, Сербия"
 
 # Цены
-DORM_BED_NIGHT = 28  # евро за койко-место в дорме
-DORM_BED_MONTH = 210  # евро за месяц
-PRIVATE_ROOM_NIGHT = 40  # евро за ночь (2-местный)
-PRIVATE_ROOM_MONTH = 360  # евро за месяц
+DORM_BED_NIGHT = 28
+DORM_BED_MONTH = 210
+PRIVATE_ROOM_NIGHT = 40
+PRIVATE_ROOM_MONTH = 360
 
 # Информация о хостеле
 CHECK_IN_TIME = "14:00"
