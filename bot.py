@@ -12,6 +12,7 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from config import BOT_TOKEN, ADMIN_ID, HOSTEL_NAME, LANGUAGES
 from database import init_db, save_booking, get_user_language, set_user_language, get_all_bookings
 from ai import ask_ai, clear_chat
+from keep_alive import keep_alive
 
 # Логирование
 logging.basicConfig(level=logging.INFO)
@@ -66,7 +67,7 @@ async def about_hostel(callback: types.CallbackQuery):
     texts = {
         'ru': (
             f"🏠 *{HOSTEL_NAME}*\n\n"
-            f"📍 {HOSTEL_NAME} находится в Земуне — самом атмосферном районе Белграда.\n\n"
+            f"📍 Уютный хостел в Земуне — самом атмосферном районе Белграда.\n\n"
             f"✨ У нас есть:\n"
             f"• Дорм на 8 мест\n"
             f"• Приватная комната на 2 гостей\n"
@@ -79,7 +80,7 @@ async def about_hostel(callback: types.CallbackQuery):
         ),
         'sr': (
             f"🏠 *{HOSTEL_NAME}*\n\n"
-            f"📍 Nalazimo se u Zemunu — najatmosferskijem delu Beograda.\n\n"
+            f"📍 Udoban hostel u Zemunu — najatmosferskijem delu Beograda.\n\n"
             f"✨ Imamo:\n"
             f"• Dorm sa 8 kreveta\n"
             f"• Privatna soba za 2 gosta\n"
@@ -92,7 +93,7 @@ async def about_hostel(callback: types.CallbackQuery):
         ),
         'en': (
             f"🏠 *{HOSTEL_NAME}*\n\n"
-            f"📍 Located in Zemun — the most atmospheric district of Belgrade.\n\n"
+            f"📍 Cozy hostel in Zemun — the most atmospheric district of Belgrade.\n\n"
             f"✨ We have:\n"
             f"• 8-bed dorm\n"
             f"• Private room for 2 guests\n"
@@ -186,24 +187,23 @@ async def show_contacts(callback: types.CallbackQuery):
 async def check_availability(callback: types.CallbackQuery):
     lang = get_user_language(callback.from_user.id)
     
-    # Для MVP просто показываем статичную информацию
     texts = {
         'ru': (
             f"🛏 *Свободные места на ближайшие дни:*\n\n"
             f"• Дорм (8 мест): 5 свободных\n"
-            f"• Приватная комната: занята до 25 числа\n\n"
-            f"📅 Для точной проверки на ваши даты — напишите даты заезда и выезда, я проверю!"
+            f"• Приватная комната: свободна\n\n"
+            f"📅 Для точной проверки на ваши даты — напишите даты заезда и выезда!"
         ),
         'sr': (
             f"🛏 *Slobodna mesta za naredne dane:*\n\n"
             f"• Dorm (8 kreveta): 5 slobodnih\n"
-            f"• Privatna soba: zauzeta do 25.\n\n"
+            f"• Privatna soba: slobodna\n\n"
             f"📅 Za tačnu proveru za vaše datume — napišite datume dolaska i odlaska!"
         ),
         'en': (
             f"🛏 *Available beds for the coming days:*\n\n"
             f"• Dorm (8 beds): 5 available\n"
-            f"• Private room: booked until the 25th\n\n"
+            f"• Private room: available\n\n"
             f"📅 For exact availability on your dates — tell me your check-in and check-out dates!"
         )
     }
@@ -300,7 +300,6 @@ async def process_room_type(callback: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
     lang = get_user_language(callback.from_user.id)
     
-    # Формируем сводку
     summary_texts = {
         'ru': (
             f"📋 *Проверьте детали бронирования:*\n\n"
@@ -348,7 +347,6 @@ async def confirm_booking(callback: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
     lang = get_user_language(callback.from_user.id)
     
-    # Сохраняем бронь в БД
     booking_id = save_booking({
         'user_id': callback.from_user.id,
         'username': callback.from_user.username,
@@ -359,10 +357,9 @@ async def confirm_booking(callback: types.CallbackQuery, state: FSMContext):
         'check_in': data.get('dates'),
         'check_out': data.get('dates'),
         'guests': data.get('guests'),
-        'total_price': 0  # Потом можно считать
+        'total_price': 0
     })
     
-    # Отправляем админу
     admin_text = (
         f"🔔 *Новая бронь #{booking_id}*\n\n"
         f"👤 {data.get('full_name')}\n"
@@ -450,13 +447,10 @@ async def handle_message(message: Message):
     user_id = message.from_user.id
     lang = get_user_language(user_id)
     
-    # Показываем "печатает..."
     await bot.send_chat_action(message.chat.id, "typing")
     
-    # Получаем ответ от ИИ
     ai_response = ask_ai(user_id, message.text)
     
-    # Отправляем ответ
     await message.answer(ai_response)
 
 # Команда для админа: посмотреть все брони
@@ -473,7 +467,7 @@ async def show_bookings(message: Message):
         return
     
     text = "📋 *Все брони:*\n\n"
-    for b in bookings[:10]:  # Последние 10
+    for b in bookings[:10]:
         text += f"#{b[0]} | {b[3]} | {b[4]} | {b[6]} | {b[7]} | {b[8]} гостей | {b[10]}\n"
     
     await message.answer(text, parse_mode="Markdown")
@@ -481,6 +475,7 @@ async def show_bookings(message: Message):
 # Запуск бота
 async def main():
     init_db()
+    keep_alive()  # Запускаем веб-сервер для Render
     print("✅ База данных инициализирована")
     print("🤖 Бот запущен!")
     await dp.start_polling(bot)
