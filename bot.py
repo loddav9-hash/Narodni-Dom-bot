@@ -451,7 +451,8 @@ async def handle_message(message: Message):
     
     ai_response = ask_ai(user_id, message.text)
     
-    await message.answer(ai_response)
+    # Убираем Markdown-разметку, чтобы избежать ошибок
+    await message.answer(ai_response, parse_mode=None)
 
 # Команда для админа: посмотреть все брони
 @dp.message(Command("bookings"))
