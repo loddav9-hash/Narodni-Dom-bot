@@ -1,6 +1,6 @@
-echo "aiogram" > requirements.txt
-echo "google-generativeai" >> requirements.txt
-echo "python-dotenv" >> requirements.txt
-echo "aiohttp" >> requirements.txt
-echo "apscheduler" >> requirements.txt
-echo "flask" >> requirements.txt
+aiogram
+google-generativeai
+python-dotenv
+aiohttp
+apscheduler
+flask
