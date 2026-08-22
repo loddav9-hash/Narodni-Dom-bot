@@ -9,7 +9,6 @@ genai.configure(api_key=GEMINI_API_KEY)
 model = genai.GenerativeModel(
     model_name="gemini-3.6-flash",
     system_instruction=SYSTEM_PROMPT
-    НЕ ИСПОЛЬЗУЙ Markdown-разметку (звёздочки, подчёркивания для форматирования). Пиши простым текстом.
 )
 
 # Храним историю диалогов (user_id -> list of messages)
