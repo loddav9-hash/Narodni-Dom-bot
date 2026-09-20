@@ -5,9 +5,11 @@ from datetime import datetime
 DB_PATH = "hostel.db"
 
 def init_db():
-    """Создать таблицы, если их нет"""
+    """Создать все нужные таблицы"""
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
+    
+    # Таблица броней
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS bookings (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -21,8 +23,41 @@ def init_db():
             created_at TEXT
         )
     """)
+    
+    # Таблица пользователей (для языка)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            user_id INTEGER PRIMARY KEY,
+            language TEXT DEFAULT 'ru'
+        )
+    """)
+    
     conn.commit()
     conn.close()
+
+# === СТАРЫЕ ФУНКЦИИ (для bot.py) ===
+
+def get_user_language(user_id: int) -> str:
+    """Получить язык пользователя"""
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT language FROM users WHERE user_id = ?", (user_id,))
+    row = cursor.fetchone()
+    conn.close()
+    return row[0] if row else "ru"
+
+def set_user_language(user_id: int, language: str):
+    """Установить язык пользователя"""
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO users (user_id, language) VALUES (?, ?)
+        ON CONFLICT(user_id) DO UPDATE SET language = ?
+    """, (user_id, language, language))
+    conn.commit()
+    conn.close()
+
+# === НОВЫЕ ФУНКЦИИ (для ai.py) ===
 
 def get_available_beds(check_in: str, check_out: str) -> int:
     """Сколько свободных мест в дорме на указанные даты."""
