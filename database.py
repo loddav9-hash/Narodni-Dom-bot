@@ -2,93 +2,72 @@
 import sqlite3
 from datetime import datetime
 
-DB_NAME = "hostel.db"
+DB_PATH = "hostel.db"
 
 def init_db():
-    """Создание таблиц, если их нет"""
-    conn = sqlite3.connect(DB_NAME)
+    """Создать таблицы, если их нет"""
+    conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    
-    # Таблица бронирований
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS bookings (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER,
-            username TEXT,
-            full_name TEXT,
+            name TEXT,
             phone TEXT,
-            language TEXT,
+            check_in TEXT,
+            check_out TEXT,
             room_type TEXT,
-            check_in DATE,
-            check_out DATE,
             guests INTEGER,
-            total_price REAL,
-            status TEXT DEFAULT 'new',
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            created_at TEXT
         )
     """)
-    
-    # Таблица для хранения языка пользователя
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS user_language (
-            user_id INTEGER PRIMARY KEY,
-            language TEXT DEFAULT 'ru'
-        )
-    """)
-    
     conn.commit()
     conn.close()
 
-def save_booking(data: dict):
-    """Сохранить бронирование"""
-    conn = sqlite3.connect(DB_NAME)
+def get_available_beds(check_in: str, check_out: str) -> int:
+    """Сколько свободных мест в дорме на указанные даты."""
+    total_beds = 8
+    conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute("""
-        INSERT INTO bookings (user_id, username, full_name, phone, language, 
-                             room_type, check_in, check_out, guests, total_price)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """, (
-        data.get('user_id'),
-        data.get('username'),
-        data.get('full_name'),
-        data.get('phone'),
-        data.get('language'),
-        data.get('room_type'),
-        data.get('check_in'),
-        data.get('check_out'),
-        data.get('guests'),
-        data.get('total_price')
-    ))
-    conn.commit()
-    booking_id = cursor.lastrowid
+        SELECT SUM(guests) FROM bookings
+        WHERE room_type = 'dorm'
+        AND NOT (check_out <= ? OR check_in >= ?)
+    """, (check_in, check_out))
+    booked = cursor.fetchone()[0] or 0
     conn.close()
-    return booking_id
+    return total_beds - booked
 
-def get_user_language(user_id: int) -> str:
-    """Получить язык пользователя"""
-    conn = sqlite3.connect(DB_NAME)
-    cursor = conn.cursor()
-    cursor.execute("SELECT language FROM user_language WHERE user_id = ?", (user_id,))
-    result = cursor.fetchone()
-    conn.close()
-    return result[0] if result else 'ru'
-
-def set_user_language(user_id: int, language: str):
-    """Сохранить язык пользователя"""
-    conn = sqlite3.connect(DB_NAME)
+def get_available_private(check_in: str, check_out: str) -> int:
+    """Сколько свободных приватных комнат на указанные даты."""
+    total_rooms = 2
+    conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute("""
-        INSERT INTO user_language (user_id, language) VALUES (?, ?)
-        ON CONFLICT(user_id) DO UPDATE SET language = ?
-    """, (user_id, language, language))
+        SELECT COUNT(*) FROM bookings
+        WHERE room_type = 'private'
+        AND NOT (check_out <= ? OR check_in >= ?)
+    """, (check_in, check_out))
+    booked = cursor.fetchone()[0] or 0
+    conn.close()
+    return total_rooms - booked
+
+def save_booking(user_id, name, phone, check_in, check_out, room_type, guests):
+    """Сохранить бронь в базу"""
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO bookings (user_id, name, phone, check_in, check_out, room_type, guests, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    """, (user_id, name, phone, check_in, check_out, room_type, guests, datetime.now().isoformat()))
     conn.commit()
     conn.close()
 
 def get_all_bookings():
     """Получить все брони (для админа)"""
-    conn = sqlite3.connect(DB_NAME)
+    conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM bookings ORDER BY created_at DESC")
-    bookings = cursor.fetchall()
+    cursor.execute("SELECT * FROM bookings ORDER BY check_in")
+    rows = cursor.fetchall()
     conn.close()
-    return bookings
+    return rows
