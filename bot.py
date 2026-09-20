@@ -226,6 +226,18 @@ async def start_booking(callback: types.CallbackQuery, state: FSMContext):
     await state.set_state(BookingStates.waiting_for_name)
     await callback.answer()
 
+@dp.message(Command("bookings"))
+async def show_bookings(message: Message):
+    if message.from_user.id != int(ADMIN_ID):
+        return
+    bookings = get_all_bookings()
+    if not bookings:
+        await message.answer("Броней пока нет.")
+        return
+    text = "📋 Все брони:\n\n"
+    for b in bookings:
+        text += f"#{b[0]} | {b[2]} | {b[3]} | {b[4]} | {b[6]} | {b[7]} гостей\n"
+    await message.answer(text)
 # Обработка имени
 @dp.message(BookingStates.waiting_for_name)
 async def process_name(message: Message, state: FSMContext):
@@ -347,18 +359,15 @@ async def confirm_booking(callback: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
     lang = get_user_language(callback.from_user.id)
     
-    booking_id = save_booking({
-        'user_id': callback.from_user.id,
-        'username': callback.from_user.username,
-        'full_name': data.get('full_name'),
-        'phone': data.get('phone'),
-        'language': lang,
-        'room_type': data.get('room_type'),
-        'check_in': data.get('dates'),
-        'check_out': data.get('dates'),
-        'guests': data.get('guests'),
-        'total_price': 0
-    })
+    booking_id = save_booking(
+    user_id=callback.from_user.id,
+    name=data.get('full_name'),
+    phone=data.get('phone'),
+    check_in=data.get('dates'),
+    check_out=data.get('dates'),
+    room_type=data.get('room_type'),
+    guests=data.get('guests')
+)
     
     admin_text = (
         f"🔔 *Новая бронь #{booking_id}*\n\n"
